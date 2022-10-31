@@ -64,7 +64,7 @@ class BoyerMoore:
                 current_record = result[-1]
                 position = ord(self.pattern[i - 1]) - 97    # ascii lowercase start from 97
                 new_record = [item for item in current_record]
-                new_record[position] = i
+                new_record[position] = i-1
                 result.append(new_record)
         return result
 
@@ -94,10 +94,15 @@ class BoyerMoore:
             if z_values[i] > longest_prefix_length:
                 longest_prefix_length = z_values[i]
             matched_prefix[length-i-1] = longest_prefix_length
-        return matched_prefix
+        return matched_prefix[::-1]
 
-    def get_next_shift(self) -> int:
-        pass
+    def get_next_shift(self, index: int, counter: int) -> int:
+        m = len(self.pattern)
+        character = self.pattern[index]
+        bad_character_shift = m - self.bad_character_matrix[counter][ord(character)-97] - 1
+        good_suffix_shift = m - self.good_suffix[index] - 1
+        matched_prefix_shift = m - self.matched_prefix[index] - 1
+        return max(bad_character_shift, good_suffix_shift, matched_prefix_shift)
 
     def find(self, pattern: str) -> int:
         """ Implement Boyer-Moore Algorithm to find the
@@ -111,25 +116,46 @@ class BoyerMoore:
             Time Complexity (Worst case): O(M+N)
         """
         # Preprocessing
+        self.pattern = pattern
         self.bad_character_matrix = self.generate_bad_character()
         self.z_suffix = self.generate_z_suffix()
         self.good_suffix = self.generate_good_suffix()
         self.matched_prefix = self.generate_matched_prefix()
+        m, n = len(self.pattern), len(self.text)
 
         # Implement Galil's Optimization
-        pass
+        naive_shift = 1
+        occurrence = []
+        j = 0
+        stop_point = -1
+        while j < n - m + 1:
+            mismatched_index = None
+            counter = m - 1
+            for i in range(m-1, stop_point, -1):
+                if self.pattern[i] != self.text[j+i]:
+                    mismatched_index = i
+                    stop_point = i-1
+                    counter -= 1
+                    break
+            if mismatched_index is not None:
+                if mismatched_index + 1 >= m:
+                    break
+                j += max(self.get_next_shift(mismatched_index+1, counter), naive_shift)
+            else:
+                occurrence.append(j)
+                j += max(self.matched_prefix[0], naive_shift)
+        return occurrence
 
 
 if __name__ == "__main__":
     word = "bbabaxababay"
-    target = "aba"
-    word = "sdafffsdffqewrfqewrdsf;lrewjgkregnkngjkjfdkhgjklrem,gfdjkhgbjkfdhbjkbnruigfiu2tqrqwr"
-    target = "wrfqewrdsf;lrewjgkregnkngjkjfd"
-    word = "bbabaxababay"
-    target = "tbapxab"
-    p_by = BoyerMoore("", "acababacaba")
-    p_by.z_suffix = p_by.generate_z_suffix()
-    print(p_by.generate_matched_prefix())
+    target = "abab"
+    # word = "sdafffsdffqewrfqewrdsf;lrewjgkregnkngjkjfdkhgjklrem,gfdjkhgbjkfdhbjkbnruigfiu2tqrqwr"
+    # target = "wrfqewrdsf;lrewjgkregnkngjkjfd"
+    # word = "bbabaxababay"
+    # target = "tbapxab"
+    p_by = BoyerMoore(word)
+    print(p_by.find(target))
     # index = boyer_moore_algorithm(target, word)
     # print(index)
     # assert word[index:index + len(target)] == target, "Failed"
