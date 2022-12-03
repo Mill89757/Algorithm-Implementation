@@ -80,7 +80,7 @@ class BoyerMoore:
         values = [0 for _ in range(m+1)]
         for position in range(m-1):
             index = m - self.z_suffix[position]
-            values[index] = position
+            values[index] = position + 1
         return values
 
     def generate_matched_prefix(self) -> list:
@@ -89,20 +89,22 @@ class BoyerMoore:
         length = len(z_values)
         matched_prefix = [0 for _ in range(length)]
         matched_prefix[-1] = len(self.pattern)
-        longest_prefix_length = float("-inf")
+        longest_prefix_length = 1 if self.pattern[0] == self.pattern[-1] else 0
         for i in range(length-1, 0, -1):
-            if z_values[i] > longest_prefix_length:
+            if z_values[i] > longest_prefix_length and z_values[i] == i - 1:
                 longest_prefix_length = z_values[i]
             matched_prefix[length-i-1] = longest_prefix_length
-        return matched_prefix[::-1]
+        return matched_prefix[::-1]+[0]
 
     def get_next_shift(self, index: int, counter: int) -> int:
         m = len(self.pattern)
         character = self.pattern[index]
         bad_character_shift = m - self.bad_character_matrix[counter][ord(character)-97] - 1
-        good_suffix_shift = m - self.good_suffix[index] - 1
-        matched_prefix_shift = m - self.matched_prefix[index] - 1
-        return max(bad_character_shift, good_suffix_shift, matched_prefix_shift)
+        if self.good_suffix[index+1] != 0:
+            good_suffix_shift = m - self.good_suffix[index+1] - 1
+        else:
+            good_suffix_shift = m - self.matched_prefix[index+1] - 1
+        return max(bad_character_shift, good_suffix_shift)
 
     def find(self, pattern: str) -> int:
         """ Implement Boyer-Moore Algorithm to find the
@@ -121,6 +123,11 @@ class BoyerMoore:
         self.z_suffix = self.generate_z_suffix()
         self.good_suffix = self.generate_good_suffix()
         self.matched_prefix = self.generate_matched_prefix()
+
+        print(self.bad_character_matrix)
+        print(self.z_suffix)
+        print(self.good_suffix)
+        print(self.matched_prefix)
         m, n = len(self.pattern), len(self.text)
 
         # Implement Galil's Optimization
@@ -148,14 +155,16 @@ class BoyerMoore:
 
 
 if __name__ == "__main__":
-    word = "bbabaxababay"
-    target = "abab"
+    # text = "aaacababacabaabcabcabacababacababjdcn"
+    # target = "acababacaba"
     # word = "sdafffsdffqewrfqewrdsf;lrewjgkregnkngjkjfdkhgjklrem,gfdjkhgbjkfdhbjkbnruigfiu2tqrqwr"
     # target = "wrfqewrdsf;lrewjgkregnkngjkjfd"
-    # word = "bbabaxababay"
+    # text = "tbapxabbbtbapxababtbapxabaxababay"
     # target = "tbapxab"
-    p_by = BoyerMoore(word)
-    print(p_by.find(target))
-    # index = boyer_moore_algorithm(target, word)
-    # print(index)
-    # assert word[index:index + len(target)] == target, "Failed"
+    # p_by = BoyerMoore(target, word)
+    # print(p_by.generate_matched_prefix())
+    print("Test")
+    p_by = BoyerMoore(text)
+    index = p_by.find(target)
+    print(index)
+    # assert text[index[0]:index[0] + len(target)] == target, "Failed"
